@@ -6,26 +6,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	// Import the SQLite driver package
 	_ "github.com/mattn/go-sqlite3"
 	//"github.com/mdp/qrterminal/v3"
 	//"github.com/skip2/go-qrcode"
+	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
 	"go.mau.fi/whatsmeow"
-	wp "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
-	"google.golang.org/protobuf/proto"
-	
 )
 
 var client *whatsmeow.Client
 
 
-
-// eventHandler handles incoming events and dispatches them to the appropriate functions
 func eventHandler(evt interface{}) {
     // Check if event is a message
     if evt, ok := evt.(*events.Message); ok {
@@ -67,7 +61,7 @@ func handleUserChoice(evt *events.Message, choice string) {
     case "1":
         // O usuário escolheu a opção 1: Deseja Agendar Horário
         // Implemente a lógica para esta opção aqui
-       sendResponse(evt, `*Você escolheu a opção 1: Deseja Agendar Horário.*
+        infra.WhatsmeowSendResponse(client ,evt, `*Você escolheu a opção 1: Deseja Agendar Horário.*
         
         os seguintes horários estão disponíveis:
 
@@ -77,47 +71,32 @@ func handleUserChoice(evt *events.Message, choice string) {
         `)
 
 
-        sendResponse(evt, "*Por favor, responda com o número correspondente ao horário desejado.*")
+        infra.WhatsmeowSendResponse(client,evt, "*Por favor, responda com o número correspondente ao horário desejado.*")
     case "2":
         // O usuário escolheu a opção 2: Ver Preços
         // Implemente a lógica para esta opção aqui
-        sendResponse(evt, "Você escolheu a opção 2: Ver Preços.")
+        infra.WhatsmeowSendResponse(client,evt, "Você escolheu a opção 2: Ver Preços.")
     case "3":
         // O usuário escolheu a opção 3: Verificar seu Horário
         // Implemente a lógica para esta opção aqui
-        sendResponse(evt, "Você escolheu a opção 3: Verificar seu Horário.")
+        infra.WhatsmeowSendResponse(client, evt, "Você escolheu a opção 3: Verificar seu Horário.")
     case "4":
         // O usuário escolheu a opção 4: Ligar para atendente
         // Implemente a lógica para esta opção aqui
-        sendResponse(evt, "Você escolheu a opção 4: Ligar para atendente.")
+        infra.WhatsmeowSendResponse(client,evt, "Você escolheu a opção 4: Ligar para atendente.")
     case "5":
         // O usuário escolheu a opção 5: Sair
         // Implemente a lógica para esta opção aqui
-        sendResponse(evt, "Você escolheu a opção 5: Sair.")
+        infra.WhatsmeowSendResponse(client,evt, "Você escolheu a opção 5: Sair.")
     }
 }
 
 
-func sendResponse(evt *events.Message, responseText string) string {
-    client.SendMessage(context.Background(), evt.Info.Chat, &wp.Message{
-        ExtendedTextMessage: &wp.ExtendedTextMessage{
-            Text: proto.String(responseText),
-            ContextInfo: &wp.ContextInfo{
-                QuotedMessage: &wp.Message{
-                    Conversation: proto.String(evt.Message.GetConversation()),
-                },
-                StanzaId:    proto.String(evt.Info.ID),
-                Participant: proto.String(evt.Info.Sender.ToNonAD().String()),
-            },
-        },
-    })
 
-    return evt.Message.GetConversation()
-}
 
 // Função para enviar uma mensagem de erro ao usuário
 func sendErrorMessage(evt *events.Message, errorMessage string) {
-    sendResponse(evt, errorMessage)
+    infra.WhatsmeowSendResponse(client, evt, errorMessage)
 }
 
 func main() {
@@ -125,18 +104,14 @@ func main() {
 
     container, err := initializeSQLStore()
     handleError(err)
-
   
 
 	deviceStore, err := getFirstDeviceFromContainer(container)
 	handleError(err)
 
-    handleError(err)
-
 
 	initializeWhatsMeowClient(deviceStore)
 
-    // Check if the client is already logged in or perform the login process
     handleLogin()
 
     waitForInterruptSignal()
@@ -144,15 +119,13 @@ func main() {
 
 func configureLogging() {
     dbLog := waLog.Stdout("Database", "INFO", true)
-    // Use dbLog if needed for database logging
     _ = dbLog
-    // Configure other logging settings if needed
-    // ...
+  
 }
 
 func initializeSQLStore() (*sqlstore.Container, error) {
 	dbLog := waLog.Stdout("Database", "INFO", true)
-    return sqlstore.New("sqlite3", "file:examplestore.db?_foreign_keys=on", dbLog)
+    return sqlstore.New("sqlite3", "file:../examplestore.db?_foreign_keys=on", dbLog)
 }
 
 func getFirstDeviceFromContainer(container *sqlstore.Container) (*store.Device, error)  {
@@ -165,8 +138,6 @@ func initializeWhatsMeowClient(deviceStore *store.Device) {
     client.AddEventHandler(eventHandler)
 }
 
-
-
 func handleLogin() {
 	if client.Store.ID == nil {
 		qrChan, _ := client.GetQRChannel(context.Background())
@@ -174,7 +145,7 @@ func handleLogin() {
 		handleError(err)
 
 		// Create a file to save the QR code as a PNG image
-		qrFile, err := os.Create("qrcode.png")
+		qrFile, err := os.Create("../qrcode.png")
 	
 		if err != nil {
 			panic(err)
