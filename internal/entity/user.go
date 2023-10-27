@@ -6,8 +6,15 @@ type User struct {
 	Name string
 	PhoneNumber string
 	Role string
-	Status string
-	CreatedAt string
-	UpdatedAt string
+	IsActive bool
+}
 
+
+func NewUser(name string, phoneNumber string,role string , isActive bool) *User {
+	return &User{
+		Name: name,
+		PhoneNumber: phoneNumber,
+		Role: role,
+		IsActive: isActive,
+	}
 }
