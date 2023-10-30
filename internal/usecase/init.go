@@ -89,7 +89,7 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 	        3. CANCELAR UM AGENDAMENTO ? ❌
 	        4. ENTRAR EM CONTATO ? 📞
 
-	         _Responda com o número correspondente à sua escolha._`
+	_Responda com o número correspondente à sua escolha._`
 
 	infra.WhatsmeowSendResponse(client, evt, msg)
 

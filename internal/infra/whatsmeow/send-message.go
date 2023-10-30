@@ -2,13 +2,14 @@ package infra
 
 import (
 	"context"
+
 	"go.mau.fi/whatsmeow"
 	wp "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/proto"
 )
 
-func WhatsmeowSendResponse(client *whatsmeow.Client, evt *events.Message, responseText string) string {
+func WhatsmeowSendResponse(client *whatsmeow.Client, evt *events.Message, responseText string) {
 	client.SendMessage(context.Background(), evt.Info.Chat, &wp.Message{
 		ExtendedTextMessage: &wp.ExtendedTextMessage{
 			Text: proto.String(responseText),
@@ -22,5 +23,4 @@ func WhatsmeowSendResponse(client *whatsmeow.Client, evt *events.Message, respon
 		},
 	})
 
-	return evt.Info.Chat.String()
 }
