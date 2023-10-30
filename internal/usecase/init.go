@@ -16,11 +16,11 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 	if evt.Message.GetConversation() == "1" {
 		msg := `*Seus Agendamentos Abaixo:*
 
-		1 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
-		2 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
+1 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
+2 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
 
 	  
-		0 - VOLTAR ? ⬅️`
+_0 - VOLTAR ? ⬅️_`
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "SHOW_USER_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
@@ -30,15 +30,14 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 
 	if evt.Message.GetConversation() == "2" {
 		msg := `*Todos Horários disponíveis Abaixo:*
-
-		2 - *13:00* Hoje 🕥
-		3 - *15:00* Hoje 🕥
+ 2 - *13:00* Hoje 🕥
+ 3 - *15:00* Hoje 🕥
 		
 		
-		1 - OUTRA DATA 📅
-		0 - VOLTAR ⬅️
+ _1 - AGENDAR OUTRA DATA 📅_
+ _0 - VOLTAR ⬅️_
 
-		_DIGITE ALGUMA OPÇÃO_`
+_Responda com o número correspondente à sua escolha._`
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "NEW_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
@@ -49,9 +48,13 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 	if evt.Message.GetConversation() == "3" {
 		msg := `*Qual dos seus horários você deseja cancelar?:*
 
-		1 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
-		2 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
-		0 - VOLTAR ⬅️
+1 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
+2 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
+
+
+_0 - VOLTAR ⬅️_
+
+_Responda com o número correspondente à sua escolha._
 		`
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "CANCEL_SCHEDULE").Result()
@@ -84,12 +87,12 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 
 	msg := `*Olá! Por favor, escolha uma das seguintes opções de 0 a 4:*
 
-	        1. VER SEU AGENDAMENTO ? 👀
-	        2. VER HORÁRIOS DISPONÍVEIS ? 👀
-	        3. CANCELAR UM AGENDAMENTO ? ❌
-	        4. ENTRAR EM CONTATO ? 📞
+1. VER SEU AGENDAMENTO ? 👀
+2. VER HORÁRIOS DISPONÍVEIS ? 👀
+3. CANCELAR UM AGENDAMENTO ? ❌
+4. ENTRAR EM CONTATO ? 📞
 
-	_Responda com o número correspondente à sua escolha._`
+_Responda com o número correspondente à sua escolha._`
 
 	infra.WhatsmeowSendResponse(client, evt, msg)
 
