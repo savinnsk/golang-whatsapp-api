@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/go-redis/redis/v8"
+	gr "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
-func EventsMapper(client *whatsmeow.Client, evt interface{}, redisClient *redis.Client) {
+func EventsMapper(client *whatsmeow.Client, evt interface{}, redisClient *redis.Client, gormInstance *gr.Connection) {
 
 	if evt, ok := evt.(*events.Message); ok {
 

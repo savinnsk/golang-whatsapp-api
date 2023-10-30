@@ -12,6 +12,7 @@ import (
 
 	//"github.com/mdp/qrterminal/v3"
 	//"github.com/skip2/go-qrcode"
+	gr "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	redisInstance "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/redis"
 	whatsmeowInstance "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
 	usecase "github.com/savinnsk/prototype_bot_whatsapp/internal/usecase"
@@ -24,10 +25,11 @@ import (
 
 var client *whatsmeow.Client
 var redisClient *redis.Client
+var gormInstance *gr.Connection
 
 func eventHandler(evt interface{}) {
 	if evt, ok := evt.(*events.Message); ok {
-		usecase.EventsMapper(client, evt, redisClient)
+		usecase.EventsMapper(client, evt, redisClient, gormInstance)
 	}
 }
 
@@ -35,7 +37,7 @@ func main() {
 	configureLogging()
 
 	redisClient = redisInstance.Init()
-
+	gormInstance = gr.Init()
 	container, err := initializeSQLStore()
 	handleError(err)
 
@@ -58,7 +60,7 @@ func configureLogging() {
 
 func initializeSQLStore() (*sqlstore.Container, error) {
 	dbLog := waLog.Stdout("Database", "INFO", true)
-	return sqlstore.New("sqlite3", "file:examplestore.db?_foreign_keys=on", dbLog)
+	return sqlstore.New("sqlite3", "file:whatsmeow.db?_foreign_keys=on", dbLog)
 }
 
 func getFirstDeviceFromContainer(container *sqlstore.Container) (*store.Device, error) {
