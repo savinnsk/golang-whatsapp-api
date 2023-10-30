@@ -8,12 +8,9 @@ import (
 
 var client *whatsmeow.Client
 
-type EventHandler interface {
-	HandleEvent(evt interface{})
-}
-
-func InitializeWhatsMeowClient(deviceStore *store.Device, e EventHandler) {
+func Init(deviceStore *store.Device) *whatsmeow.Client {
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
 	client = whatsmeow.NewClient(deviceStore, clientLog)
-	client.AddEventHandler(e.HandleEvent)
+
+	return client
 }
