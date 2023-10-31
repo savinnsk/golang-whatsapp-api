@@ -25,11 +25,10 @@ import (
 
 var client *whatsmeow.Client
 var redisClient *redis.Client
-var gormInstance *gr.Connection
 
 func eventHandler(evt interface{}) {
 	if evt, ok := evt.(*events.Message); ok {
-		usecase.EventsMapper(client, evt, redisClient, gormInstance)
+		usecase.EventsMapper(client, evt, redisClient)
 	}
 }
 
@@ -37,7 +36,7 @@ func main() {
 	configureLogging()
 
 	redisClient = redisInstance.Init()
-	gormInstance = gr.Init()
+	gr.Init()
 	container, err := initializeSQLStore()
 	handleError(err)
 
