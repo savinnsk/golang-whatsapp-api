@@ -1,26 +1,10 @@
 package infra
 
 import (
+	entity "github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
-
-type Schedule struct {
-	Id        int    `gorm:"primaryKey"`
-	Time      string `gorm:"not null"`
-	Date      *string
-	Available bool `gorm:"not null"`
-	Disabled  bool `gorm:"not null"`
-	gorm.Model
-}
-
-type User struct {
-	Id         int        `gorm:"primaryKey"`
-	Name       string     `gorm:"not null"`
-	Role       float64    `gorm:"not null"`
-	Schedules  []Schedule `gorm:"many2many:user_schedules"`
-	gorm.Model            // to create created_at and updated_at and deleted_at
-}
 
 type Connection struct {
 	db *gorm.DB
@@ -33,9 +17,9 @@ func Init() *Connection {
 		panic(err)
 	}
 	connection := Connection{db: db}
-	connection.db.AutoMigrate(&Schedule{}, &User{})
+	connection.db.AutoMigrate(&entity.Schedule{}, &entity.User{})
 
-	println("Done")
+	println("Connection with database ok")
 
 	return &connection
 }
