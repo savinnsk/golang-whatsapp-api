@@ -1,20 +1,17 @@
 package entity
 
-
 type User struct {
-	Id int
-	Name string
-	PhoneNumber string
-	Role string
-	IsActive bool
+	Id        int         `gorm:"primaryKey"`
+	Name      string      `gorm:"not null"`
+	Phone     string      `gorm:"not null"`
+	Role      string      `gorm:"not null"`
+	Schedules *[]Schedule `gorm:"many2many:user_schedules"` // to create created_at and updated_at and deleted_at
 }
 
-
-func NewUser(name string, phoneNumber string,role string , isActive bool) *User {
+func NewUser(name string, phone string, role string) *User {
 	return &User{
-		Name: name,
-		PhoneNumber: phoneNumber,
-		Role: role,
-		IsActive: isActive,
+		Name:  name,
+		Phone: phone,
+		Role:  role,
 	}
 }
