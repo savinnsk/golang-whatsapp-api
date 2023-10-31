@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
@@ -16,11 +17,11 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 	if evt.Message.GetConversation() == "1" {
 		msg := `*Seus Agendamentos Abaixo:*
 
-1 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
-2 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
+1 - *HORA* : ~11:00~ - *DATA* 12/12/2023 🕥
+2 - *HORA* : ~13:00~ - *DATA* 12/12/2023 🕥
 
 	  
-_0 - VOLTAR ? ⬅️_`
+_0 - VOLTAR ? ◀️_`
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "SHOW_USER_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
@@ -29,15 +30,22 @@ _0 - VOLTAR ? ⬅️_`
 	}
 
 	if evt.Message.GetConversation() == "2" {
-		msg := `*Todos Horários disponíveis Abaixo:*
- 2 - *13:00* Hoje 🕥
- 3 - *15:00* Hoje 🕥
-		
-		
- _1 - AGENDAR OUTRA DATA 📅_
- _0 - VOLTAR ⬅️_
+		schedules, err := gorm.LoadAllSchedules()
+		if err != nil {
+			println("Error to load Schedules")
+		}
 
-_Responda com o número correspondente à sua escolha._`
+		msg := `*Horários De Hoje Disponíveis Abaixo:*
+		`
+
+		for i, schedule := range schedules {
+			if schedule.Available && !schedule.Disabled {
+				msg += fmt.Sprintf("\n%d - *HORA*: %s  *HOJE* 🕥", i+2, schedule.Time)
+			}
+		}
+
+		msg += "\n\n_1 - AGENDAR / OUTRA DATA 📅_"
+		msg += "\n_0 - VOLTAR  ◀️_"
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "NEW_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
@@ -48,11 +56,11 @@ _Responda com o número correspondente à sua escolha._`
 	if evt.Message.GetConversation() == "3" {
 		msg := `*Qual dos seus horários você deseja cancelar?:*
 
-1 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
-2 - *HORA* : 13:00 - *DATA* 12/12/25 🕥
+1 - *HORA* : ~11:00~ - *DATA* 12/12/25 🕥
+2 - *HORA* : ~13:00~ - *DATA* 12/12/25 🕥
 
 
-_0 - VOLTAR ⬅️_
+_0 - VOLTAR ◀️_
 
 _Responda com o número correspondente à sua escolha._
 		`
@@ -87,7 +95,7 @@ _Responda com o número correspondente à sua escolha._
 
 	msg := `*Olá! Por favor, escolha uma das seguintes opções de 0 a 4:*
 
-1. VER SEU AGENDAMENTO ? 👀
+1. VER SEU AGENDAMENTO ? 👁️
 2. VER HORÁRIOS DISPONÍVEIS ? 👀
 3. CANCELAR UM AGENDAMENTO ? ❌
 4. ENTRAR EM CONTATO ? 📞
