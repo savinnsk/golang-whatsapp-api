@@ -12,6 +12,15 @@ func UpdateSchedule(schedule *entity.Schedule) error {
 	return connection.db.Save(schedule).Error
 }
 
+func FindScheduleByTime(time string) (entity.Schedule, error) {
+
+	connection := Init()
+	var schedule entity.Schedule
+	result := connection.db.Where("time = ?", time).First(&schedule)
+
+	return schedule, result.Error
+}
+
 func DeleteSchedule(schedule *entity.Schedule) error {
 	connection := Init()
 	return connection.db.Delete(schedule).Error

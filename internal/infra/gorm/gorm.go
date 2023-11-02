@@ -17,7 +17,7 @@ func Init() *Connection {
 		panic(err)
 	}
 	connection := Connection{db: db}
-	connection.db.AutoMigrate(&entity.Schedule{}, &entity.User{})
+	connection.db.AutoMigrate(&entity.Schedule{}, &entity.User{}, &entity.UserSchedule{})
 
 	println("Connection with database ok")
 

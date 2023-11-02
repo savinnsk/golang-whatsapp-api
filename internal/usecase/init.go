@@ -44,8 +44,10 @@ _0 - VOLTAR ? ◀️_`
 			}
 		}
 
-		msg += "\n\n_1 - AGENDAR / OUTRA DATA 📅_"
+		msg += "\n\n_1 - AGENDAR OUTRA DATA 📅_"
 		msg += "\n_0 - VOLTAR  ◀️_"
+
+		msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅_"
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "NEW_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
