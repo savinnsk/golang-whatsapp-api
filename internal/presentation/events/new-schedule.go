@@ -1,13 +1,8 @@
-package usecase
+package presentation
 
 import (
 	"context"
-
-	//	"fmt"
-	//"time"
-
 	"github.com/go-redis/redis/v8"
-	//"gorm.io/gorm"
 	entity "github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
 	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"

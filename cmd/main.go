@@ -15,7 +15,7 @@ import (
 	gr "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	redisInstance "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/redis"
 	whatsmeowInstance "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
-	usecase "github.com/savinnsk/prototype_bot_whatsapp/internal/usecase"
+	evPresent "github.com/savinnsk/prototype_bot_whatsapp/internal/presentation/events"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -28,7 +28,7 @@ var redisClient *redis.Client
 
 func eventHandler(evt interface{}) {
 	if evt, ok := evt.(*events.Message); ok {
-		usecase.EventsMapper(client, evt, redisClient)
+		evPresent.EventsMapper(client, evt, redisClient)
 	}
 }
 
