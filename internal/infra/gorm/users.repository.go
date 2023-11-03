@@ -2,13 +2,14 @@ package infra
 
 import entity "github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
 
-func CreateUser(user *entity.User) {
-
+func CreateUser(user *entity.User) error {
 	connection := Init()
+
 	err := connection.db.Create(user).Error
 	if err != nil {
-		println("Error to create user")
+		return err
 	}
+	return nil
 }
 
 func FindUserByPhone(phone string) (*entity.User, error) {

@@ -2,10 +2,13 @@ package presentation
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+
 	"github.com/go-redis/redis/v8"
-	entity "github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
-	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
+	dto "github.com/savinnsk/prototype_bot_whatsapp/internal/domain/dto"
 	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
+	usecase "github.com/savinnsk/prototype_bot_whatsapp/internal/usecase"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -19,26 +22,31 @@ func NewSchedule(client *whatsmeow.Client, evt *events.Message, redisClient *red
 		date, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "date").Result()
 		name, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "name").Result()
 
-		schedule, err := gorm.FindScheduleByTime(time)
-		if err != nil {
-			infra.WhatsmeowSendResponse(client, evt, "ERRO")
+		userData := dto.CreateUserDto{
+			Name:  name,
+			Phone: evt.Info.Chat.String(),
+			Role:  "user",
+		}
+
+		data := dto.SaveNewUserAndSchedule{
+			CreateUserDto: userData,
+			ScheduleTime:  time,
+			ScheduleDate:  date,
+		}
+
+		result := usecase.ProcessNewSchedule(data)
+		if result != "ok" {
+			redisClient.HDel(context.Background(), evt.Info.Chat.String(), "chatStage")
+			redisClient.HDel(context.Background(), evt.Info.Chat.String(), "currentChatId")
+			infra.WhatsmeowSendResponse(client, evt, "\n\n_"+result+"_")
 			return
 		}
 
-		user := entity.NewUser(name, evt.Info.Chat.String(), "user")
+		msg := `_😀 SEU AGENDAMENTO FOI SALVO COM SUCESSO_`
 
-		gorm.CreateUser(user)
-		newUser, err := gorm.FindUserByPhone(evt.Info.Chat.String())
-		if err != nil {
-			infra.WhatsmeowSendResponse(client, evt, "ERRO")
-			return
-		}
-		println(">>>>>>>>>>>>>>>>>>>", date)
-		gorm.CreateUserSchedule(newUser.Id, schedule.Id, date, time)
-
-		msg := `_SEU AGENDAMENTO FOI SALVO COM SUCESSO_`
-		//redisClient.HSet(context.Background(), evt.Info.Chat.String(), "chatStage", "NAME").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
+		redisClient.HDel(context.Background(), evt.Info.Chat.String(), "chatStage")
+		redisClient.HDel(context.Background(), evt.Info.Chat.String(), "currentChatId")
 		return
 	}
 
@@ -54,8 +62,6 @@ func NewSchedule(client *whatsmeow.Client, evt *events.Message, redisClient *red
 
 	if stage == "TIME" && evt.Message.GetConversation() != "0" {
 		redisClient.HSet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "time", evt.Message.GetConversation()).Result()
-		// time, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "time").Result()
-		// date, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "date").Result()
 
 		msg := `*Qual seu nome?*`
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "chatStage", "NAME").Result()
@@ -65,13 +71,22 @@ func NewSchedule(client *whatsmeow.Client, evt *events.Message, redisClient *red
 
 	if stage == "DATA" && evt.Message.GetConversation() != "0" {
 		redisClient.HSet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "date", evt.Message.GetConversation()).Result()
+		date, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "date").Result()
+		schedules := usecase.LoadAllValidSchedulesDates()
+		schedulesJSON, _ := json.Marshal(schedules)
 
-		msg := `*Digite qual horário você deseja*
+		redisClient.HSet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "schedules", schedulesJSON).Result()
+		msg := `Horários Disponíveis para :*` + date + `* Abaixo:`
 
-		- *Nesse formato separado por dois pontos ex:*  13:30
-	   
-	   
-		`
+		for i, schedule := range schedules {
+			if schedule.Available && !schedule.Disabled {
+				msg += fmt.Sprintf("\n\n%d - *HORA*: %s  *%s* 🕥", i+2, schedule.Time, date)
+			}
+		}
+
+		msg += "\n\n_0 - VOLTAR  ◀️_"
+		msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅"
+
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "chatStage", "TIME").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
 		return
@@ -82,13 +97,13 @@ func NewSchedule(client *whatsmeow.Client, evt *events.Message, redisClient *red
 
 *Nesse formato separado por barras* 
 
-ex : 25/06/2023 
-	 *dia/mes/ano*
+*exemplo:* 
 
+25/06/2023 
+*dia/mes/ano*
 	  
 _0 - VOLTAR ? ◀️_`
 
-		//redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "NEW_SCHEDULE").Result()
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "chatStage", "DATA").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
 		return

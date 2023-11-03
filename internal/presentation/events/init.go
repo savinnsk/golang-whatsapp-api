@@ -13,8 +13,8 @@ import (
 )
 
 func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client, currentChatId string) {
-
 	if evt.Message.GetConversation() == "1" {
+
 		msg := `*Seus Agendamentos Abaixo:*
 
 1 - *HORA* : ~11:00~ - *DATA* 12/12/2023 🕥
@@ -47,7 +47,7 @@ _0 - VOLTAR ? ◀️_`
 		msg += "\n\n_1 - AGENDAR OUTRA DATA 📅_"
 		msg += "\n_0 - VOLTAR  ◀️_"
 
-		msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅_"
+		msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅"
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "NEW_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)

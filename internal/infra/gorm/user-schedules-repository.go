@@ -1,14 +1,17 @@
 package infra
 
-import entity "github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
+import (
+	dto "github.com/savinnsk/prototype_bot_whatsapp/internal/domain/dto"
+	entity "github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
+)
 
-func CreateUserSchedule(userID int, scheduleID int, date string, time string) error {
+func CreateUserSchedule(data dto.CreateUserSchedule) error {
 	connection := Init()
 	userSchedule := entity.UserSchedule{
-		UserID:     userID,
-		ScheduleID: scheduleID,
-		Date:       date,
-		Time:       time,
+		UserID:     data.UserId,
+		ScheduleID: data.ScheduleId,
+		Date:       data.Date,
+		Time:       data.Time,
 	}
 	err := connection.db.Create(&userSchedule).Error
 	if err != nil {
