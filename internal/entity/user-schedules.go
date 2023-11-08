@@ -1,8 +1,9 @@
 package entity
 
 type UserSchedule struct {
-	UserID     string `gorm:"primaryKey"`
-	ScheduleID string `gorm:"primaryKey"`
+	Id         int    `gorm:"primaryKey"`
+	UserID     string `gorm:"not nul"`
+	ScheduleID string `gorm:"not null"`
 	Date       string `gorm:"null"`
 	Time       string `gorm:"null"`
 }

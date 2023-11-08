@@ -2,20 +2,29 @@ package usecase
 
 import (
 	dto "github.com/savinnsk/prototype_bot_whatsapp/internal/domain/dto"
+	"github.com/savinnsk/prototype_bot_whatsapp/internal/entity"
 	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 )
 
 func ProcessNewSchedule(data dto.SaveNewUserAndSchedule) string {
 
+	userFound, _ := gorm.FindUserByPhone(data.CreateUserDto.Phone)
+	var userResult *entity.User
 	errValidator := ValidateTimeAndDate(data.ScheduleTime, data.ScheduleDate)
 	if errValidator != "ok" {
 		return errValidator
 	}
 
-	user, err := CreateUserAndReturn(data.CreateUserDto)
-	if err != nil {
-		print("Error at CreateUserAndReturn Line 11")
-		return "🤔 Ops! algo errado ao cadastrar seu nome"
+	if userFound == nil {
+		user, err := CreateUserAndReturn(data.CreateUserDto)
+		if err != nil {
+			print("Error at CreateUserAndReturn Line 11")
+			return "🤔 Ops! algo errado ao cadastrar seu nome"
+		}
+		userResult = user
+	} else {
+		userResult = userFound
+
 	}
 
 	schedule, err := gorm.FindScheduleByTime(data.ScheduleTime)
@@ -25,7 +34,7 @@ func ProcessNewSchedule(data dto.SaveNewUserAndSchedule) string {
 	}
 
 	userSchedule := dto.CreateUserSchedule{
-		UserId:     user.Id,
+		UserId:     userResult.Id,
 		ScheduleId: schedule.Id,
 		Time:       schedule.Time,
 		Date:       data.ScheduleDate,

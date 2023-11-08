@@ -2,12 +2,12 @@ package presentation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/go-redis/redis/v8"
-	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
+	usecase "github.com/savinnsk/prototype_bot_whatsapp/internal/usecase"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -15,33 +15,47 @@ import (
 func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client, currentChatId string) {
 	if evt.Message.GetConversation() == "1" {
 
-		msg := `*Seus Agendamentos Abaixo:*
+		schedules, err := usecase.LoadAllUserSchedules(evt.Info.Chat.String())
+		if err != nil {
+			msg := "_Não há agendamentos registrados._"
+			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
+			infra.WhatsmeowSendResponse(client, evt, msg)
+			return
+		}
 
-1 - *HORA* : ~11:00~ - *DATA* 12/12/2023 🕥
-2 - *HORA* : ~13:00~ - *DATA* 12/12/2023 🕥
+		msg := "*Seus Agendamentos Abaixo:* \n"
 
-	  
-_0 - VOLTAR ? ◀️_`
+		for _, schedule := range schedules {
+			msg += fmt.Sprintf("\n🕥 - *HORA*: %s , *DATA* : %s", schedule.Time, schedule.Date)
+		}
 
-		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "SHOW_USER_SCHEDULE").Result()
+		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
 		return
 
 	}
 
 	if evt.Message.GetConversation() == "2" {
-		schedules, err := gorm.LoadAllSchedules()
-		if err != nil {
-			println("Error to load Schedules")
+		schedulesFiltered := usecase.FilterSchedules()
+
+		if len(schedulesFiltered) == 0 {
+			msg := "_🙁 - Não há agendamentos para hoje."
+			msg += "\n\n_1 - AGENDAR OUTRA DATA 📅_"
+			msg += "\n_0 - VOLTAR  ◀️_"
+			msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅"
+			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "NEW_SCHEDULE").Result()
+			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
+			infra.WhatsmeowSendResponse(client, evt, msg)
+			return
 		}
 
-		msg := `*Horários De Hoje Disponíveis Abaixo:*
-		`
+		schedulesJSON, _ := json.Marshal(schedulesFiltered)
 
-		for i, schedule := range schedules {
-			if schedule.Available && !schedule.Disabled {
-				msg += fmt.Sprintf("\n%d - *HORA*: %s  *HOJE* 🕥", i+2, schedule.Time)
-			}
+		redisClient.HSet(context.Background(), evt.Info.Chat.String()+"NEW_SCHEDULE", "schedules", schedulesJSON).Result()
+		msg := "Horários Disponíveis de Hoje: \n\n"
+
+		for i, schedule := range schedulesFiltered {
+			msg += fmt.Sprintf("\n%d - *HORA*: %s Hoje 🕥", i+2, schedule)
 		}
 
 		msg += "\n\n_1 - AGENDAR OUTRA DATA 📅_"
@@ -56,16 +70,30 @@ _0 - VOLTAR ? ◀️_`
 	}
 
 	if evt.Message.GetConversation() == "3" {
-		msg := `*Qual dos seus horários você deseja cancelar?:*
+		schedules, err := usecase.LoadAllUserSchedules(evt.Info.Chat.String())
+		var userScheduleArray []string
 
-1 - *HORA* : ~11:00~ - *DATA* 12/12/25 🕥
-2 - *HORA* : ~13:00~ - *DATA* 12/12/25 🕥
+		for _, schedule := range schedules {
+			userScheduleArray = append(userScheduleArray, schedule.Time)
 
+		}
 
-_0 - VOLTAR ◀️_
+		schedulesJSON, _ := json.Marshal(userScheduleArray)
+		redisClient.HSet(context.Background(), evt.Info.Chat.String()+"CANCEL_SCHEDULE", "schedules", schedulesJSON).Result()
+		msg := "*Seus Agendamentos Abaixo:* \n"
 
-_Responda com o número correspondente à sua escolha._
-		`
+		if err != nil {
+			msg := "_🙁 - Não há agendamentos para cancelar._"
+			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
+			infra.WhatsmeowSendResponse(client, evt, msg)
+			return
+		}
+		for i, schedule := range schedules {
+			msg += fmt.Sprintf("\n%d - *HORA*: %s , *DATA* : %s", i+2, schedule.Time, schedule.Date)
+		}
+
+		msg += "\n\n_0 - VOLTAR  ◀️_"
+		msg += "\n\n_Responda com o número correspondente à sua escolha. Para *cancelar ❌*_ 📅"
 
 		redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "CANCEL_SCHEDULE").Result()
 		infra.WhatsmeowSendResponse(client, evt, msg)
@@ -92,12 +120,12 @@ _Responda com o número correspondente à sua escolha._
 	if err != nil {
 		fmt.Println("Erro to save and init conversation:", err)
 	}
-	expirationDuration := 10 * time.Minute
-	redisClient.Expire(context.Background(), evt.Info.Chat.String(), expirationDuration).Result()
+	// expirationDuration := 10 * time.Minute
+	// redisClient.Expire(context.Background(), evt.Info.Chat.String(), expirationDuration).Result()
 
-	msg := `*Olá! Por favor, escolha uma das seguintes opções de 0 a 4:*
+	msg := `*Olá! Por favor, escolha uma das seguintes opções de 1 a 4:*
 
-1. VER SEU AGENDAMENTO ? 👁️
+1. VER SEUS AGENDAMENTO ? 👁️
 2. VER HORÁRIOS DISPONÍVEIS ? 👀
 3. CANCELAR UM AGENDAMENTO ? ❌
 4. ENTRAR EM CONTATO ? 📞

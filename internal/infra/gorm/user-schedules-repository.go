@@ -20,9 +20,9 @@ func CreateUserSchedule(data dto.CreateUserSchedule) error {
 	return nil
 }
 
-func LoadUserSchedulesByUserID(userID int) ([]entity.Schedule, error) {
+func LoadUserSchedulesByUserID(userID string) ([]entity.UserSchedule, error) {
 	connection := Init()
-	var userSchedules []entity.Schedule
+	var userSchedules []entity.UserSchedule
 	err := connection.db.Where("user_id = ?", userID).Find(&userSchedules).Error
 	if err != nil {
 		return nil, err
@@ -33,6 +33,15 @@ func LoadUserSchedulesByUserID(userID int) ([]entity.Schedule, error) {
 func DeleteUserSchedule(userID int, scheduleID int) error {
 	connection := Init()
 	err := connection.db.Where("user_id = ? AND schedule_id = ?", userID, scheduleID).Delete(entity.UserSchedule{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleUserScheduleByTime(time string) error {
+	connection := Init()
+	err := connection.db.Where("time = ?", time).Delete(entity.UserSchedule{}).Error
 	if err != nil {
 		return err
 	}
