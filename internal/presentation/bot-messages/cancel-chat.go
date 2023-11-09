@@ -13,7 +13,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 )
 
-func CancelMessage(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
+func Cancel(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
 
 	schedulesJson, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String()+"CANCEL_SCHEDULE", "schedules").Result()
 	var schedules []string

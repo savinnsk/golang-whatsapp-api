@@ -15,7 +15,7 @@ import (
 	gr "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	redisInstance "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/redis"
 	whatsmeowInstance "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
-	evPresent "github.com/savinnsk/prototype_bot_whatsapp/internal/presentation/events"
+	evPresent "github.com/savinnsk/prototype_bot_whatsapp/internal/presentation/bot-messages"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
