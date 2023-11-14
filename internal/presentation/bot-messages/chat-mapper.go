@@ -41,7 +41,7 @@ func EventsMapper(client *whatsmeow.Client, evt interface{}, redisClient *redis.
 			CancelMessage(client, evt, redisClient)
 		}
 
-		if currentChatId == "INIT" || currentChatId == "" {
+		if currentChatId == "init.chat" || currentChatId == "" {
 			Init(client, evt, redisClient, currentChatId)
 		}
 

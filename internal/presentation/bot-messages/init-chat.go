@@ -26,7 +26,7 @@ func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Clie
 
 	} else if evt.Message.GetConversation() == "4" {
 		handleWithSendContact(client, evt, redisClient)
-	} else if evt.Message.GetConversation() != "" && currentChatId == "INIT" {
+	} else if evt.Message.GetConversation() != "" && currentChatId == "init.chat" {
 		infra.WhatsmeowSendResponse(client, evt, GetMessage().NotUnderstand)
 		return
 	} else {
@@ -38,7 +38,7 @@ func handleDefaultConversation(client *whatsmeow.Client, evt *events.Message, re
 	user, _ := gorm.FindUserByPhone(evt.Info.Chat.String())
 	fields := map[string]interface{}{
 		"phone":         evt.Info.Chat.String(),
-		"currentChatId": "INIT",
+		"currentChatId": "init.chat",
 	}
 	currentChatId, err := redisClient.HGet(context.Background(), evt.Info.Chat.String(), "currentChatId").Result()
 	if err != nil {
