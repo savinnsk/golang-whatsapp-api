@@ -11,6 +11,7 @@ type Message struct {
 	ScheduleOtherTime       string
 	DefaultFooter           string
 	Contacts                string
+	VerifyValues            string
 }
 
 func GetMessage() Message {
@@ -24,6 +25,7 @@ func GetMessage() Message {
 	var ErrorDefault = "*Desculpe, algo deu errado. Por favor, tente novamente mais tarde.*"
 	var SchedulesNotFound = "*Não encontramos nenhum agendamento para você.*"
 	var NotUnderstand = "*Desculpe, não entendi, pode repetir.*"
+	var VerifyValues = "*Desculpe, mas pode verificar se digitou corretamente os valores.*"
 
 	// layout
 	var BackButton = "\n_0 - VOLTAR_  ◀️"
@@ -41,5 +43,6 @@ func GetMessage() Message {
 		ScheduleOtherTime:       ScheduleOtherTime,
 		DefaultFooter:           DefaultFooter,
 		Contacts:                Contacts,
+		VerifyValues:            VerifyValues,
 	}
 }

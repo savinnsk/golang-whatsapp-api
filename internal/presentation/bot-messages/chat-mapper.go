@@ -12,38 +12,24 @@ import (
 func EventsMapper(client *whatsmeow.Client, evt interface{}, redisClient *redis.Client) {
 
 	if evt, ok := evt.(*events.Message); ok {
-		currentChatId, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String(), "currentChatId").Result()
-		if currentChatId == "SHOW_USER_SCHEDULE" && evt.Message.GetConversation() == "0" {
-			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
-			Init(client, evt, redisClient, currentChatId)
-			return
 
-		}
+		currentChatId, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String(), "current.chat.id").Result()
 
-		if currentChatId == "NEW_SCHEDULE" && evt.Message.GetConversation() == "0" {
-			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
-			Init(client, evt, redisClient, currentChatId)
-			return
-		}
-
-		if currentChatId == "NEW_SCHEDULE" {
-
+		if currentChatId == "chat.show.schedules" {
 			NewSchedule(client, evt, redisClient, currentChatId)
 			return
 		}
 
 		if currentChatId == "CANCEL_SCHEDULE" && evt.Message.GetConversation() == "0" {
 			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
-			Init(client, evt, redisClient, currentChatId)
+			Init(client, evt, redisClient)
 			return
 		}
 		if currentChatId == "CANCEL_SCHEDULE" {
-			CancelMessage(client, evt, redisClient)
+			Cancel(client, evt, redisClient)
 		}
 
-		if currentChatId == "init.chat" || currentChatId == "" {
-			Init(client, evt, redisClient, currentChatId)
-		}
+		Init(client, evt, redisClient)
 
 	}
 }

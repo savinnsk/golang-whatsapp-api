@@ -5,7 +5,8 @@ import (
 )
 
 func ValidateTimeAndDate(timeSchedule string, dateSchedule string) string {
-
+	println(dateSchedule)
+	println(timeSchedule)
 	currentDate := time.Now().Format("02/01/2006")
 	currentTime := time.Now().Format("15:04")
 

@@ -8,9 +8,8 @@ import (
 
 func CreateNewSchedule(data dto.CreateUserSchedule) error {
 	err := gorm.CreateUserSchedule(data)
-
+	println(">>>>>>>>>>>>", err)
 	if err != nil {
-		println("Error CreateNewSchedule Schedule Line 12")
 		return err
 	}
 

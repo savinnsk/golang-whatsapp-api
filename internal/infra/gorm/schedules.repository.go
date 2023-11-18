@@ -29,7 +29,7 @@ func DeleteSchedule(schedule *entity.Schedule) error {
 func LoadAllSchedules() ([]entity.Schedule, error) {
 	connection := Init()
 	var schedules []entity.Schedule
-	if err := connection.db.Find(&schedules).Error; err != nil {
+	if err := connection.db.Order("time ASC").Find(&schedules).Error; err != nil {
 		return nil, err
 	}
 	return schedules, nil

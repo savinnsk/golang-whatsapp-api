@@ -22,12 +22,18 @@ func FilterSchedules() []string {
 	return scheduleArray
 }
 
-func VerifyScheduleBasedAtArray(choice string, schedulesFiltered []string) string {
+func VerifyScheduleBasedAtArray(choice string, schedulesFiltered []string) (string, error) {
 
 	choiceInt, err := strconv.Atoi(choice)
 	if err != nil {
-		return "Invalid choice: not a number"
+		return "", err
 	}
 	newChose := choiceInt - 2
-	return schedulesFiltered[newChose]
+
+	if newChose >= 0 && newChose < len(schedulesFiltered) {
+		return schedulesFiltered[newChose], nil
+	}
+
+	return "", err
+
 }

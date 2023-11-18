@@ -21,7 +21,7 @@ func Cancel(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Cl
 		fmt.Println("Error unmarshaling JSON:", err)
 		return
 	}
-	timeChose := usecase.VerifyScheduleBasedAtArray(evt.Message.GetConversation(), schedules)
+	timeChose, _ := usecase.VerifyScheduleBasedAtArray(evt.Message.GetConversation(), schedules)
 	gorm.DeleUserScheduleByTime(timeChose)
 
 	msg := "\n\n_Horário Excluído com sucesso ❌*_ 📅"
