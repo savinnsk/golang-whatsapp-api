@@ -2,6 +2,7 @@ package infra
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -25,10 +26,10 @@ func Init() *redis.Client {
 
 }
 
-func DeleteValues(ctx context.Context, index string, values []string) error {
+func DeleteValues(rc *redis.Client, ctx context.Context, index string, values []string) error {
 
 	for _, key := range values {
-		err := redisClient.HDel(ctx, index, key).Err()
+		err := rc.HDel(ctx, index, key).Err()
 		if err != nil {
 			return err
 		}
@@ -38,32 +39,26 @@ func DeleteValues(ctx context.Context, index string, values []string) error {
 
 }
 
-func AddValues(ctx context.Context, index string, keysValues []string, values []string) error {
-	for _, keyValue := range keysValues {
-		for _, value := range values {
-			err := redisClient.HSet(ctx, index, keyValue, value).Err()
-			if err != nil {
-				return err
-			}
-		}
+func AddValues(rc *redis.Client, ctx context.Context, index string, keysValues []string, values []any) error {
 
-		return nil
+	for i, value := range values {
+		fmt.Print("aaaaaaaaaaaaaaaaaaaaaaaaaaa  \n", keysValues[i], value)
+		err := redisClient.HSet(ctx, index, keysValues[i], value).Err()
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
+
 }
 
-func GetValues(ctx context.Context, index string, keys []string) ([]string, error) {
-
-	var values []string
-	for _, key := range keys {
-		value, err := redisClient.HGet(ctx, index, key).Result()
-		if err != nil {
-			return nil, err
-		}
-
-		values = append(values, value)
+func GetValue(rc *redis.Client, ctx context.Context, index string, key string) (string, error) {
+	value, err := rc.HGet(ctx, index, key).Result()
+	if err != nil {
+		return "", err
 	}
 
-	return values, nil
+	return value, nil
 
 }

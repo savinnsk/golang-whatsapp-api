@@ -8,8 +8,8 @@ import (
 	t "time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/savinnsk/prototype_bot_whatsapp/internal/configs"
 	dto "github.com/savinnsk/prototype_bot_whatsapp/internal/domain/dto"
-
 	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	redisC "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/redis"
 	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
@@ -19,59 +19,67 @@ import (
 )
 
 func NewSchedule(cs *ChatSetup) {
-
+	clientIndex := cs.evt.Info.Chat.String()
 	messageFromClient := cs.evt.Message.GetConversation()
-	_, errNotNumeric := strconv.Atoi(messageFromClient)
-	stageConversation, _ := redisC.GetValues(context.TODO(), cs.evt.Info.Chat.String(), []string{"chat.stage"}) //cs.redisClient.HGet(context.Background(), cs.evt.Info.Chat.String(), "chat.stage").Result()
-
-	if messageFromClient == "1" && stageConversation[0] == "" {
-		Option1ScheduleAnotherDate(cs)
-
+	stageConversation, err := redisC.GetValue(cs.redisClient, context.Background(), clientIndex, "chat.stage") //cs.redisClient.HGet(context.Background(), cs.evt.Info.Chat.String(), "chat.stage").Result()
+	if err != nil {
+		configs.MakeError(err, "schedules.message.go / line : 24 ")
 	}
 
-	if stageConversation[0] == "schedule.another.date" {
+	_, MessageNotNumeric := strconv.Atoi(messageFromClient)
 
-		if messageFromClient == "0" {
-			cs.redisClient.HDel(context.Background(), cs.evt.Info.Chat.String(), "chat.stage")
-			cs.redisClient.HDel(context.Background(), cs.evt.Info.Chat.String(), "schedules")
-			Init(cs.client, cs.evt, cs.redisClient)
-			return
-		}
-
-		targetDate, err := t.Parse("02/01/2006", cs.evt.Message.GetConversation())
-
-		if err != nil {
-			fmt.Println(err, "line 43 schedules.message")
-			infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().NotUnderstand)
-			return
-		}
-
-		if targetDate.Before(t.Now()) {
-			infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().VerifyValues)
-			return
-		}
-
-		cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "target.date", targetDate).Result()
-
-		schedulesFiltered := usecase.FilterSchedules()
-		schedulesJSON, _ := json.Marshal(schedulesFiltered)
-
-		cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "schedules", schedulesJSON).Result()
-		msg := `Horários Disponíveis para :*` + targetDate.Format("02/01/2006") + "* Abaixo:\n\n"
-
-		for i, schedule := range schedulesFiltered {
-			msg += fmt.Sprintf("\n%d - *HORA*: %s  *%s* 🕥", i+2, schedule, targetDate.Format("02/01/2006"))
-		}
-
-		msg += "\n\n_0 - VOLTAR  ◀️_"
-		msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅"
-
-		cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "chat.stage", "chat.time").Result()
-		infra.WhatsmeowSendResponse(cs.client, cs.evt, msg)
-		return
+	if messageFromClient == "1" && stageConversation == "" {
+		SetOption1ScheduleAnotherDate(cs)
 	}
 
-	if stageConversation[0] == "chat.time" && cs.evt.Message.GetConversation() != "0" {
+	if stageConversation == "schedule.another.date" {
+
+		HandleScheduleAnotherDate(cs)
+
+		// 	err := redisC.DeleteValues(cs.redisClient, context.Background(), cs.evt.Info.Chat.String(), []string{"chat.stage", "schedules"})
+		// 	if err != nil {
+		// 		configs.MakeError(err, "schedules.message.go / line : 36")
+		// 	}
+		// 	// cs.redisClient.HDel(context.Background(), cs.evt.Info.Chat.String(), "chat.stage")
+		// 	// cs.redisClient.HDel(context.Background(), cs.evt.Info.Chat.String(), "schedules")
+		// 	Init(cs.client, cs.evt, cs.redisClient)
+		// 	return
+		// }
+
+		// targetDate, err := t.Parse("02/01/2006", cs.evt.Message.GetConversation())
+
+		// if err != nil {
+		// 	fmt.Println(err, "line 43 schedules.message")
+		// 	infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().NotUnderstand)
+		// 	return
+		// }
+
+		// if targetDate.Before(t.Now()) {
+		// 	infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().VerifyValues)
+		// 	return
+		// }
+
+		// cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "target.date", targetDate).Result()
+
+		// schedulesFiltered := usecase.FilterSchedules()
+		// schedulesJSON, _ := json.Marshal(schedulesFiltered)
+
+		// cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "schedules", schedulesJSON).Result()
+		// msg := `Horários Disponíveis para :*` + targetDate.Format("02/01/2006") + "* Abaixo:\n\n"
+
+		// for i, schedule := range schedulesFiltered {
+		// 	msg += fmt.Sprintf("\n%d - *HORA*: %s  *%s* 🕥", i+2, schedule, targetDate.Format("02/01/2006"))
+		// }
+
+		// msg += "\n\n_0 - VOLTAR  ◀️_"
+		// msg += "\n\n_Responda com o número correspondente à sua escolha. Para agendar_ 📅"
+
+		// cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "chat.stage", "chat.time").Result()
+		// infra.WhatsmeowSendResponse(cs.client, cs.evt, msg)
+		// return
+	}
+
+	if stageConversation == "chat.time" && cs.evt.Message.GetConversation() != "0" {
 
 		schedulesJson, _ := cs.redisClient.HGet(context.Background(), cs.evt.Info.Chat.String(), "schedules").Result()
 		var schedules []string
@@ -81,7 +89,7 @@ func NewSchedule(cs *ChatSetup) {
 		}
 		timeChose, err := usecase.VerifyScheduleBasedAtArray(cs.evt.Message.GetConversation(), schedules)
 
-		if errNotNumeric != nil || err != nil || timeChose == "" {
+		if MessageNotNumeric != nil || err != nil || timeChose == "" {
 			infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().VerifyValues)
 			return
 		}
@@ -104,7 +112,7 @@ func NewSchedule(cs *ChatSetup) {
 		return
 	}
 
-	if stageConversation[0] == "chat.get.name" {
+	if stageConversation == "chat.get.name" {
 		date, _ := cs.redisClient.HGet(context.Background(), cs.evt.Info.Chat.String(), "target.date").Result()
 		timeChose, _ := cs.redisClient.HGet(context.Background(), cs.evt.Info.Chat.String(), "chat.time.chose").Result()
 		targetDate, _ := t.Parse("2006-01-02T15:04:05Z", date)
@@ -231,10 +239,10 @@ func NewSchedule(cs *ChatSetup) {
 
 }
 
-func Option1ScheduleAnotherDate(cs *ChatSetup) {
-	err := redisC.AddValues(context.Background(), cs.evt.Info.Chat.String(), []string{"chat.stage"}, []string{"schedule.another.date"})
+func SetOption1ScheduleAnotherDate(cs *ChatSetup) {
+	err := redisC.AddValues(cs.redisClient, context.Background(), cs.evt.Info.Chat.String(), []string{"chat.stage"}, []string{"schedule.another.date"})
 	if err != nil {
-		print("💀 error at : schedules.message.go / line : 236")
+		configs.MakeError(err, "error at : schedules.message.go / line : 236")
 	}
 	infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().ScheduleAnotherDate)
 }
@@ -243,9 +251,7 @@ func HandleScheduleAnotherDate(cs *ChatSetup) {
 	messageFromClient := cs.evt.Message.GetConversation()
 
 	if messageFromClient == "0" {
-		cs.redisClient.HDel(context.Background(), cs.evt.Info.Chat.String(), "chat.stage")
-		cs.redisClient.HDel(context.Background(), cs.evt.Info.Chat.String(), "schedules")
-		Init(cs.client, cs.evt, cs.redisClient)
+		SetOption1ScheduleAnotherDate(cs)
 		return
 	}
 

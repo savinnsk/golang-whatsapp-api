@@ -6,58 +6,61 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	gorm "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/gorm"
 	infra "github.com/savinnsk/prototype_bot_whatsapp/internal/infra/whatsmeow"
 
 	usecase "github.com/savinnsk/prototype_bot_whatsapp/internal/usecase"
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/types/events"
 )
 
-func Init(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
-	if evt.Message.GetConversation() == "1" {
-		handleShowUserSchedules(client, evt, redisClient)
-		return
-	} else if evt.Message.GetConversation() == "2" {
-		handlerShowSchedules(client, evt, redisClient)
-	} else if evt.Message.GetConversation() == "3" {
-		handlerWithScheduleCancel(client, evt, redisClient)
+func Init(cs ChatSetup) {
 
-	} else if evt.Message.GetConversation() == "4" {
-		handleWithSendContact(client, evt, redisClient)
+	messageFromClient := cs.evt.Message.GetConversation()
+
+	if messageFromClient == "1" {
+		HandleShowUserSchedules(cs)
+		return
+	} else if messageFromClient == "2" {
+		HandlerShowSchedules(cs)
+		return
+	} else if messageFromClient == "3" {
+		HandlerWithScheduleCancel(cs)
+		return
+	} else if messageFromClient == "4" {
+		HandleWithSendContact(cs)
+		return
 	} else {
-		handleDefaultConversation(client, evt, redisClient)
+		HandleDefaultConversation(cs)
+		return
 	}
 }
 
-func handleDefaultConversation(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
-	user, _ := gorm.FindUserByPhone(evt.Info.Chat.String())
+func HandleDefaultConversation(cs ChatSetup) {
+	user, _ := gorm.FindUserByPhone(cs.evt.Info.Chat.String())
 
-	userPhone := evt.Info.Chat.String()
+	userPhone := cs.evt.Info.Chat.String()
 
-	currentChatId, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String(), "current.chat.id").Result()
+	currentChatId, _ := cs.redisClient.HGet(context.Background(), cs.evt.Info.Chat.String(), "current.chat.id").Result()
 
 	if user == nil && currentChatId == "" {
-		infra.WhatsmeowSendResponse(client, evt, GetMessage().Greetings)
+		infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().Greetings)
 	}
 
-	redisClient.HSet(context.Background(), userPhone, "phone", userPhone)
+	cs.redisClient.HSet(context.Background(), userPhone, "phone", userPhone)
 
-	redisClient.HSet(context.Background(), userPhone, "current.chat.id", "chat.init").Err()
+	cs.redisClient.HSet(context.Background(), userPhone, "current.chat.id", "chat.init").Err()
 
-	infra.WhatsmeowSendResponse(client, evt, GetMessage().MenuInteractionText)
+	infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().MenuInteractionText)
 
 }
 
-func handleShowUserSchedules(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
+func HandleShowUserSchedules(cs ChatSetup) {
 
-	schedules, err := usecase.LoadAllUserSchedules(evt.Info.Chat.String())
+	schedules, err := usecase.LoadAllUserSchedules(cs.evt.Info.Chat.String())
 	print()
 	if err != nil {
-		infra.WhatsmeowSendResponse(client, evt, GetMessage().SchedulesNotFound)
+		infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().SchedulesNotFound)
 		time.AfterFunc(1*time.Second, func() {
-			handleDefaultConversation(client, evt, redisClient)
+			HandleDefaultConversation(cs)
 		})
 		return
 	}
@@ -68,27 +71,26 @@ func handleShowUserSchedules(client *whatsmeow.Client, evt *events.Message, redi
 		msg += fmt.Sprintf("\n🕥 - *HORA*: %s , *DATA* : %s", schedule.Time, schedule.Date)
 	}
 
-	infra.WhatsmeowSendResponse(client, evt, msg)
+	infra.WhatsmeowSendResponse(cs.client, cs.evt, msg)
 	time.AfterFunc(5*time.Second, func() {
-		handleDefaultConversation(client, evt, redisClient)
+		HandleDefaultConversation(cs)
 	})
 
 }
 
-// [DEAL] with error type at new_schedule
-func handlerShowSchedules(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
+func HandlerShowSchedules(cs ChatSetup) {
 
 	schedulesFiltered := usecase.FilterSchedules()
 
 	if len(schedulesFiltered) == 0 {
 		msg := "*🙁 - Não há agendamentos para hoje.*"
-		infra.WhatsmeowSendResponse(client, evt, msg)
+		infra.WhatsmeowSendResponse(cs.client, cs.evt, msg)
 		return
 	}
 
 	schedulesJSON, _ := json.Marshal(schedulesFiltered)
 
-	redisClient.HSet(context.Background(), evt.Info.Chat.String(), "schedules", schedulesJSON).Result()
+	cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "schedules", schedulesJSON).Result()
 	msg := GetMessage().SchedulesAvailableTitle
 
 	for i, schedule := range schedulesFiltered {
@@ -97,18 +99,18 @@ func handlerShowSchedules(client *whatsmeow.Client, evt *events.Message, redisCl
 
 	msg += GetMessage().ScheduleOtherTime + GetMessage().BackButton + GetMessage().DefaultFooter
 
-	redisClient.HSet(context.Background(), evt.Info.Chat.String(), "current.chat.id", "chat.show.schedules").Result()
-	infra.WhatsmeowSendResponse(client, evt, msg)
+	cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "current.chat.id", "chat.show.schedules").Result()
+	infra.WhatsmeowSendResponse(cs.client, cs.evt, msg)
 
 }
 
 // [DEAL] with error type at cancel_schedule
-func handlerWithScheduleCancel(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
-	schedules, err := usecase.LoadAllUserSchedules(evt.Info.Chat.String())
+func HandlerWithScheduleCancel(cs ChatSetup) {
+	schedules, err := usecase.LoadAllUserSchedules(cs.evt.Info.Chat.String())
 	if err != nil {
-		infra.WhatsmeowSendResponse(client, evt, GetMessage().SchedulesNotFound)
+		infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().SchedulesNotFound)
 		time.AfterFunc(1*time.Second, func() {
-			handleDefaultConversation(client, evt, redisClient)
+			HandleDefaultConversation(cs)
 		})
 		return
 	}
@@ -121,7 +123,7 @@ func handlerWithScheduleCancel(client *whatsmeow.Client, evt *events.Message, re
 	}
 
 	schedulesJSON, _ := json.Marshal(userScheduleArray)
-	redisClient.HSet(context.Background(), evt.Info.Chat.String(), "schedules.to.cancel", schedulesJSON).Result()
+	cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "schedules.to.cancel", schedulesJSON).Result()
 	msg := "*Seus Agendamentos Abaixo:* \n"
 
 	for i, schedule := range schedules {
@@ -131,16 +133,16 @@ func handlerWithScheduleCancel(client *whatsmeow.Client, evt *events.Message, re
 	msg += GetMessage().BackButton
 	msg += GetMessage().DefaultFooter
 
-	redisClient.HSet(context.Background(), evt.Info.Chat.String(), "current.chat.id", "chat.cancel.schedule").Result()
-	infra.WhatsmeowSendResponse(client, evt, msg)
+	cs.redisClient.HSet(context.Background(), cs.evt.Info.Chat.String(), "current.chat.id", "chat.cancel.schedule").Result()
+	infra.WhatsmeowSendResponse(cs.client, cs.evt, msg)
 
 }
 
-func handleWithSendContact(client *whatsmeow.Client, evt *events.Message, redisClient *redis.Client) {
+func HandleWithSendContact(cs ChatSetup) {
 
-	infra.WhatsmeowSendResponse(client, evt, GetMessage().Contacts)
+	infra.WhatsmeowSendResponse(cs.client, cs.evt, GetMessage().Contacts)
 	time.AfterFunc(5*time.Second, func() {
-		handleDefaultConversation(client, evt, redisClient)
+		HandleDefaultConversation(cs)
 	})
 
 }

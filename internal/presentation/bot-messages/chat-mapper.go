@@ -21,20 +21,22 @@ func EventsMapper(client *whatsmeow.Client, evt interface{}, redisClient *redis.
 		}
 
 		if currentChatId == "chat.show.schedules" {
-			NewSchedule(chatSetup)
+			NewSchedule(*chatSetup)
 			return
 		}
 
 		if currentChatId == "CANCEL_SCHEDULE" && evt.Message.GetConversation() == "0" {
 			redisClient.HSet(context.Background(), evt.Info.Chat.String(), "currentChatId", "INIT").Result()
-			Init(client, evt, redisClient)
+			Init(*chatSetup)
 			return
 		}
 		if currentChatId == "CANCEL_SCHEDULE" {
 			Cancel(client, evt, redisClient)
 		}
 
-		Init(client, evt, redisClient)
+		if currentChatId != "chat.back" {
+			Init(*chatSetup)
+		}
 
 	}
 }
