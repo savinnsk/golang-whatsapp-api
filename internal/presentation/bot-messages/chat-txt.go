@@ -12,6 +12,7 @@ type Message struct {
 	DefaultFooter           string
 	Contacts                string
 	VerifyValues            string
+	ScheduleAnotherDate     string
 }
 
 func GetMessage() Message {
@@ -32,6 +33,9 @@ func GetMessage() Message {
 	var ScheduleOtherTime = "\n\n_1 - AGENDAR OUTRA DATA 📅_"
 	var DefaultFooter = "\n\n_Responda com o número correspondente à sua escolha_"
 
+	//schedules
+	var scheduleAnotherDate = "*Digite qual data você quer agendar:*\n\n*Nesse formato separado por barras*\n_👉 *dia/mes/ano* 👈_\n_👉 Exemplo: 01/01/2000_\n\n_0 - VOLTAR ? ◀️_"
+
 	return Message{
 		Greetings:               Greetings,
 		MenuInteractionText:     MenuInteractionText,
@@ -44,5 +48,6 @@ func GetMessage() Message {
 		DefaultFooter:           DefaultFooter,
 		Contacts:                Contacts,
 		VerifyValues:            VerifyValues,
+		ScheduleAnotherDate:     scheduleAnotherDate,
 	}
 }

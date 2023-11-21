@@ -12,11 +12,16 @@ import (
 func EventsMapper(client *whatsmeow.Client, evt interface{}, redisClient *redis.Client) {
 
 	if evt, ok := evt.(*events.Message); ok {
-
 		currentChatId, _ := redisClient.HGet(context.Background(), evt.Info.Chat.String(), "current.chat.id").Result()
+		chatSetup := &ChatSetup{
+			client:        client,
+			evt:           evt,
+			redisClient:   redisClient,
+			currentChatId: currentChatId,
+		}
 
 		if currentChatId == "chat.show.schedules" {
-			NewSchedule(client, evt, redisClient, currentChatId)
+			NewSchedule(chatSetup)
 			return
 		}
 
